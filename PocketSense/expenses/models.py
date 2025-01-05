@@ -26,13 +26,25 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     split_type = models.CharField(max_length=50)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="created_expenses")  
+    paid_by = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="paid_expenses")
     receipt_image = models.ImageField(upload_to='receipts/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    paid_by_you = models.BooleanField(default=False)
     
     def __str__(self):
-        return f"{self.amount} - {self.category} - {self.student} - {self.date}"
+        return f"{self.amount} - {self.category} - {self.student} - {self.created_at}"
 
     class Meta:
         ordering = ['-created_at']
+
+
+class ExpenseSplit(models.Model):
+    expense = models.ForeignKey(Expense, on_delete=models.CASCADE, related_name="splits")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True)
+    email = models.EmailField() 
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.email} owes {self.amount} for {self.expense}"
