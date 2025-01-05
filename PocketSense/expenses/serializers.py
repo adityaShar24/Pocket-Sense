@@ -13,5 +13,5 @@ from rest_framework.serializers import (
 class CategorieSerializer(ModelSerializer):
     class Meta:
         model = Category
+        fields = ['id' , 'name', 'is_custom']
         
-    fields = "__all__"

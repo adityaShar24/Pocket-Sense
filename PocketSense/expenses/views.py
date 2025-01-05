@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated , BasePermission
 from rest_framework.generics import (
     ListCreateAPIView,
     RetrieveUpdateDestroyAPIView,
@@ -12,11 +12,16 @@ from .models import (
 
 from .serializers import (
     CategorieSerializer,
-)
+) 
 
 from utils.response import (
     response_200,
+    response_400_bad_request,
 )
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 class IsOwnerOrReadOnly(BasePermission):
     """
@@ -25,8 +30,7 @@ class IsOwnerOrReadOnly(BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
-
-        return obj.user == request.user
+        return obj.created_by == request.user
 
 
 class CategoryListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveUpdateDestroyAPIView):
@@ -36,12 +40,19 @@ class CategoryListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveUpd
     lookup_field = 'pk'
 
     def get_queryset(self):
-        # Limit the queryset to the categories created by the logged-in user
-        return super().get_queryset().filter(user=self.request.user)
+        return super().get_queryset().filter(created_by=self.request.user)
 
     def post(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        return response_200("Category added successfully", response.data)
+        data = request.data.copy()
+        data['is_custom'] = True
+        serializer = self.serializer_class(
+            data=data, partial=True, context={"request": request}
+        )
+        if serializer.is_valid():
+            category = serializer.save(created_by=request.user)
+            return response_200("Category added successfully", serializer.data)
+        logger.info(f"Category creation failed: {serializer.errors}")
+        return response_400_bad_request(f"Category creation failed:{serializer.errors}")
 
     def get(self, request, *args, **kwargs):
         if 'pk' in kwargs:
@@ -50,17 +61,23 @@ class CategoryListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveUpd
             return self.list(request, *args, **kwargs)
 
     def put(self, request, *args, **kwargs):
-        # Ensure the user has permission to update
         instance = self.get_object()
-        if not self.check_permissions(request, instance):
-            raise PermissionDenied("You do not have permission to update this category.")
-        response = super().update(request, *args, **kwargs)
-        return response_200("Category updated successfully", response.data)
+        self.check_object_permissions(request, instance)
+
+        data = request.data.copy()
+        data['is_custom'] = True
+        serializer = self.serializer_class(
+            instance, data=data, partial=True, context={"request": request}
+        )
+        if serializer.is_valid():
+            category = serializer.save(updated_by=request.user)
+            return response_200("Category updated successfully", serializer.data)
+        
+        logger.info(f"Category update failed: {serializer.errors}")
+        return response_400_bad_request(f"Category update failed: {serializer.errors}")
 
     def delete(self, request, *args, **kwargs):
-        # Ensure the user has permission to delete
         instance = self.get_object()
-        if not self.check_permissions(request, instance):
-            raise PermissionDenied("You do not have permission to delete this category.")
+        self.check_object_permissions(request, instance)
         response = super().destroy(request, *args, **kwargs)
         return response_200("Category deleted successfully", response.data)
