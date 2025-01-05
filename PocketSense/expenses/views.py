@@ -4,14 +4,17 @@ from rest_framework.permissions import IsAuthenticated , BasePermission
 from rest_framework.generics import (
     ListCreateAPIView,
     RetrieveUpdateDestroyAPIView,
+    CreateAPIView,
 )
 
 from .models import (
     Category,
+    Expense
 )
 
 from .serializers import (
     CategorieSerializer,
+    ExpenseSerializer
 ) 
 
 from utils.response import (
@@ -81,3 +84,18 @@ class CategoryListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveUpd
         self.check_object_permissions(request, instance)
         response = super().destroy(request, *args, **kwargs)
         return response_200("Category deleted successfully", response.data)
+
+class ExpenseCreateView(CreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    queryset = Expense.objects.all()
+    serializer_class = ExpenseSerializer
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        
+        data['student'] = request.user.id
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return response_200("Expense Created", serializer.data)

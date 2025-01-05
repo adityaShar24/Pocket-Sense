@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
-    CategoryListCreateRetrieveUpdateDestroyView
+    CategoryListCreateRetrieveUpdateDestroyView,
+    ExpenseCreateView,
 )
 
 urlpatterns = [
@@ -9,4 +10,7 @@ urlpatterns = [
     path('categories/retrieve/<int:pk>/', CategoryListCreateRetrieveUpdateDestroyView.as_view() , name='retrieve-categories'),
     path('categories/update/<int:pk>/', CategoryListCreateRetrieveUpdateDestroyView.as_view() , name='update-categories'),
     path('categories/delete/<int:pk>/', CategoryListCreateRetrieveUpdateDestroyView.as_view() , name='delete-categories'),
+    
+    path('create/', ExpenseCreateView.as_view(), name='create-expense'),
+    
 ]

@@ -27,7 +27,6 @@ class Expense(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     split_type = models.CharField(max_length=50)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    date = models.DateField()
     receipt_image = models.ImageField(upload_to='receipts/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -36,4 +35,4 @@ class Expense(models.Model):
         return f"{self.amount} - {self.category} - {self.student} - {self.date}"
 
     class Meta:
-        ordering = ['-date']
+        ordering = ['-created_at']

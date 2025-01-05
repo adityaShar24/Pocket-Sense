@@ -5,8 +5,9 @@ from rest_framework.serializers import (
 from rest_framework.serializers import (
     CharField,
     ModelSerializer,
-    ValidationError,
-    BooleanField,
+    IntegerField,
+    DecimalField,
+    Serializer
 )
 from .models import (
     Category,
@@ -22,11 +23,11 @@ class CategorieSerializer(ModelSerializer):
         model = Category
         fields = ['id' , 'name', 'is_custom']
         
-class ExpenseSerializer(serializers.ModelSerializer):
+class ExpenseSerializer(ModelSerializer):
     class Meta:
         model = Expense
-        fields = ['amount', 'category', 'split_type', 'student', 'date', 'receipt_image']
+        fields = ['amount', 'category', 'split_type', 'student', 'receipt_image']
         
-class ExpenseSplitSerializer(serializers.Serializer):
-    student_id = serializers.IntegerField()
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+class ExpenseSplitSerializer(Serializer):
+    student_id = IntegerField()
+    amount = DecimalField(max_digits=10, decimal_places=2)
