@@ -22,10 +22,18 @@ class Category(models.Model):
     def __str__(self):
         return self.name
     
+class Group(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_groups")
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="expense_groups")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
 class Expense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     split_type = models.CharField(max_length=50)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="expenses")
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="created_expenses")  
     paid_by = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="paid_expenses")
     receipt_image = models.ImageField(upload_to='receipts/', null=True, blank=True)

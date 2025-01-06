@@ -12,7 +12,7 @@ class Student(AbstractUser):
     
     groups = models.ManyToManyField(
         'auth.Group',
-        related_name='student_set', 
+        related_name='auth_student_groups', 
         blank=True,
         help_text='The groups this user belongs to.',
         verbose_name='groups',
@@ -20,7 +20,7 @@ class Student(AbstractUser):
     
     user_permissions = models.ManyToManyField(
         'auth.Permission',
-        related_name='student_set',  
+        related_name='auth_student_permissions',  
         blank=True,
         help_text='Specific permissions for this user.',
         verbose_name='user permissions',
