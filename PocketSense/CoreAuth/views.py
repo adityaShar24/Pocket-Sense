@@ -14,6 +14,10 @@ from utils.response import (
     response_400_bad_request,
     response_200,
 )
+
+from .utils import (
+    send_verification_email,
+)
 class UserRegisterView(APIView):
     permission_classes = [permissions.AllowAny]  # Anyone can register
 
@@ -21,6 +25,7 @@ class UserRegisterView(APIView):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            send_verification_email(user, request)
             return response_200('User created successfully!', serializer.data)
             
         return response_400_bad_request(serializer.errors)

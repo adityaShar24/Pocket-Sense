@@ -1,5 +1,9 @@
-from django.contrib.auth.models import AbstractUser# Create your models here.
+import uuid
 from django.db import models
+from django.conf import settings
+from django.contrib.auth.models import AbstractUser
+
+
 
 class Student(AbstractUser):
     college = models.CharField(max_length=255)
@@ -25,3 +29,13 @@ class Student(AbstractUser):
 
     def __str__(self):
         return self.username
+    
+
+class EmailVerification(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    token = models.UUIDField(default=uuid.uuid4, editable=False)
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Email verification for {self.user.email}"
