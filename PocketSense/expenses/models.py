@@ -5,6 +5,10 @@ from django.conf import settings
 from CoreAuth.models import (
     Student,
 )
+from .enums import (
+    PaymentStatusEnum,
+    PaymentMethodEnum,
+)
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)  # e.g., "Food", "Travel"
@@ -56,3 +60,16 @@ class ExpenseSplit(models.Model):
 
     def __str__(self):
         return f"{self.email} owes {self.amount} for {self.expense}"
+    
+    
+class Settlement(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="settlements")
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusEnum.choices(), default=PaymentStatusEnum.Pending.value)
+    settlement_method = models.CharField(max_length=20, choices=PaymentMethodEnum.choices())
+    due_date = models.DateField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.payment_status}"
