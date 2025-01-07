@@ -11,12 +11,14 @@ from rest_framework.generics import (
 
 from .models import (
     Category,
-    Expense
+    Expense,
+    Group,
 )
 
 from .serializers import (
     CategorieSerializer,
-    ExpenseSerializer
+    ExpenseSerializer,
+    GroupSerializer,
 ) 
 
 from utils.response import (
@@ -147,3 +149,35 @@ class ExpenseCreateView(CreateAPIView):
         return response_200("Expense Created", serializer.data)
 
 
+class GroupListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveUpdateDestroyAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = GroupSerializer
+    queryset = Group.objects.all()
+    lookup_field = 'pk'
+    
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+    def perform_create(self, serializer):
+        group = serializer.save(created_by=self.request.user)
+        group.members.add(self.request.user)
+
+    def post(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)     
+        return response_200("Group created successfully", response.data)
+
+    def get(self, request, *args, **kwargs):
+        if 'pk' in kwargs:
+            return self.retrieve(request, *args, **kwargs)
+        else:
+            return self.list(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        response = super().update(request , *args , **kwargs)
+        return response_200("Group Updated Successfully", response.data)
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        response = super().destroy(request, *args, **kwargs)
+        return response_200("Group deleted successfully", response.data)

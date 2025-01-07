@@ -40,3 +40,11 @@ class UserRegisterSerializer(ModelSerializer):
         return user
 
 
+class StudentSerializer(ModelSerializer):
+    """
+    Serializer for the Student model.
+    """
+    class Meta:
+        model = Student
+        fields = ['id', 'username', 'email', 'college', 'semester',]
+        read_only_fields = ['id']
