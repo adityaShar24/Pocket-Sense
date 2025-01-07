@@ -25,3 +25,4 @@ class PaymentMethodEnum(ChoiceEnum):
     Bank_Transfer = 1
     UPI = 2
     Cheque = 3
+    Cash = 4

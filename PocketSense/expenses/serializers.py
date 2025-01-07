@@ -1,7 +1,6 @@
+from rest_framework.serializers import CharField
 
-from rest_framework.serializers import (
-    ModelSerializer,
-)
+
 from rest_framework.serializers import (
     CharField,
     ModelSerializer,
@@ -18,7 +17,8 @@ from .models import (
     Category,
     Expense,
     ExpenseSplit,
-    Group
+    Group,
+    Settlement,
 )
 
 from CoreAuth.models import (
@@ -27,6 +27,11 @@ from CoreAuth.models import (
 
 from CoreAuth.serializers import (
     StudentSerializer,
+)
+
+from .enums import (
+    PaymentStatusEnum, 
+    PaymentMethodEnum,
 )
 
 from .utils import (
@@ -106,3 +111,34 @@ class GroupSerializer(ModelSerializer):
         if member_ids is not None:
             instance.members.set(Student.objects.filter(id__in=member_ids))
         return instance
+    
+
+
+class SettlementSerializer(ModelSerializer):
+    payment_status_display = CharField(source='get_payment_status_display', read_only=True)
+    settlement_method_display = CharField(source='get_settlement_method_display', read_only=True)
+
+    class Meta:
+        model = Settlement
+        fields = [
+            'id',
+            'borrower',
+            'payment_status',
+            'payment_status_display',
+            'settlement_method',
+            'settlement_method_display',
+            'due_date',
+            'created_at',
+            'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at','user',]
+
+    def validate_payment_status(self, value):
+        if value not in PaymentStatusEnum.values():
+            raise serializers.ValidationError(f"Invalid payment status. Choices are: {PaymentStatusEnum.help()}")
+        return value
+
+    def validate_settlement_method(self, value):
+        if value not in PaymentMethodEnum.values():
+            raise serializers.ValidationError(f"Invalid settlement method. Choices are: {PaymentMethodEnum.help()}")
+        return value

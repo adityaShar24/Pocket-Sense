@@ -63,11 +63,15 @@ class ExpenseSplit(models.Model):
     
     
 class Settlement(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="settlements")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lent_settlements"
+    )   
+    borrower = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="borrowed_settlements"
+    )
     payment_status = models.CharField(max_length=20, choices=PaymentStatusEnum.choices(), default=PaymentStatusEnum.Pending.value)
     settlement_method = models.CharField(max_length=20, choices=PaymentMethodEnum.choices())
     due_date = models.DateField()
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1,3 +1,4 @@
+from datetime import datetime , timedelta
 from django.shortcuts import render
 from decimal import Decimal
 
@@ -13,12 +14,14 @@ from .models import (
     Category,
     Expense,
     Group,
+    Settlement
 )
 
 from .serializers import (
     CategorieSerializer,
     ExpenseSerializer,
     GroupSerializer,
+    SettlementSerializer,
 ) 
 
 from utils.response import (
@@ -27,6 +30,10 @@ from utils.response import (
 )
 from .utils import (
     handle_expense_split,
+)
+
+from .enums import (
+    PaymentStatusEnum,
 )
 
 import logging
@@ -181,3 +188,53 @@ class GroupListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveUpdate
         self.check_object_permissions(request, instance)
         response = super().destroy(request, *args, **kwargs)
         return response_200("Group deleted successfully", response.data)
+
+class SettlementListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveUpdateDestroyAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = SettlementSerializer
+    queryset = Settlement.objects.all()
+    lookup_field = 'pk'
+    
+    def get_queryset(self):
+        return super().get_queryset().filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+        
+    def post(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)     
+        return response_200("Settlement created successfully", response.data)
+
+    def get(self, request, *args, **kwargs):
+        if 'pk' in kwargs:
+            return self.retrieve(request, *args, **kwargs)
+        else:
+            queryset = self.get_queryset()
+            
+            overdue_settlements = queryset.filter(due_date__lt=datetime.now(), payment_status=PaymentStatusEnum.Pending.value)
+            
+            upcoming_due_date = datetime.now() + timedelta(days=7)
+            
+            due_soon_settlements = queryset.filter(
+                due_date__range=[datetime.now(), upcoming_due_date],
+                payment_status=PaymentStatusEnum.Pending.value
+            )
+            
+            overdue_serializer = self.get_serializer(overdue_settlements, many=True)
+            due_soon_serializer = self.get_serializer(due_soon_settlements, many=True)
+            all_settlements_serializer = self.get_serializer(queryset, many=True)
+            return response_200(
+                {
+                    "all_settlements": all_settlements_serializer.data,
+                    "overdue_settlements": overdue_serializer.data,
+                    "due_soon_settlements": due_soon_serializer.data
+                }
+            )
+
+    def put(self, request, *args, **kwargs):
+        response = super().update(request , *args , **kwargs)
+        return response_200("Settlement Updated Successfully", response.data)
+
+    def delete(self, request, *args, **kwargs):
+        response = super().delete(request , *args , **kwargs)
+        return response_200("Settlement deleted successfully")
