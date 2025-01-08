@@ -1,9 +1,15 @@
 from datetime import datetime , timedelta
 from django.shortcuts import render
+from django.db.models import Count, Sum
 from decimal import Decimal
 
 from rest_framework.permissions import IsAuthenticated , BasePermission
 from rest_framework.serializers import ValidationError
+
+from rest_framework.views import (
+    APIView,
+)
+
 from rest_framework.generics import (
     ListCreateAPIView,
     RetrieveUpdateDestroyAPIView,
@@ -238,3 +244,51 @@ class SettlementListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveU
     def delete(self, request, *args, **kwargs):
         response = super().delete(request , *args , **kwargs)
         return response_200("Settlement deleted successfully")
+
+#analysis
+
+class MonthlyAnalysisView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        month = int(request.query_params.get('month', datetime.now().month))
+        year = int(request.query_params.get('year', datetime.now().year))
+
+        settlements = Settlement.objects.filter(
+            user=request.user,
+            created_at__year=year,
+            created_at__month=month,
+        )
+
+        total_settlements = settlements.count()
+        total_pending = settlements.filter(payment_status=PaymentStatusEnum.Pending.value).count()
+        total_completed = settlements.filter(payment_status=PaymentStatusEnum.Completed.value).count()
+
+        total_amount_due = settlements.filter(payment_status=PaymentStatusEnum.Pending.value).aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+
+        settlement_method_breakdown = settlements.values('settlement_method').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        payment_status_breakdown = settlements.values('payment_status').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        data = {
+            "month": month,
+            "year": year,
+            "summary": {
+                "total_settlements": total_settlements,
+                "total_pending": total_pending,
+                "total_completed": total_completed,
+                "total_amount_due": total_amount_due,
+            },
+            "breakdowns": {
+                "settlement_method_breakdown": list(settlement_method_breakdown),
+                "payment_status_breakdown": list(payment_status_breakdown),
+            },
+        }
+
+        return response_200("Monthly Analysis",  data)

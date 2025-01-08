@@ -128,6 +128,7 @@ class SettlementSerializer(ModelSerializer):
             'settlement_method',
             'settlement_method_display',
             'due_date',
+            'amount',
             'created_at',
             'updated_at'
         ]
