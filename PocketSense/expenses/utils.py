@@ -95,17 +95,3 @@ def handle_expense_split(expense_amount, split_type, splits_data):
     return splits_data
 
 
-# # Example usage:
-
-# expense_amount = Decimal("100.00")  # Total amount of the expense
-
-# # Split type: 'percentage'
-# split_type = 'percentage'
-# splits_data = [
-#     {"student": "Student 1", "percentage": 50},
-#     {"student": "Student 2", "percentage": 30},
-#     {"student": "Student 3", "percentage": 20}
-# ]
-
-# result = handle_expense_split(expense_amount, split_type, splits_data)
-# print(result)
