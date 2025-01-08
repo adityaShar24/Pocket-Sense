@@ -3,6 +3,7 @@ from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.mail import EmailMessage
 
 from .models import (
     EmailVerification,
@@ -14,7 +15,7 @@ def send_verification_email(user, request):
     uid = urlsafe_base64_encode(force_bytes(user.id))
 
     current_site = get_current_site(request)
-    verification_url = f"http://localhost:8000/verify-email/{uid}/{token}/"
+    verification_url = f"http://{current_site.domain}/auth/verify-email/{uid}/{token}/"
 
     subject = "Verify your College Email"
     message = render_to_string('email/email_verification.html', {
@@ -22,7 +23,14 @@ def send_verification_email(user, request):
         'verification_url': verification_url,
     })
 
-    send_mail(subject, message, 'noreply@college.com', [user.email])
+    email = EmailMessage(
+        subject=subject,
+        body=message,
+        from_email="noreply@college.com",
+        to=[user.email],
+    )
+    email.content_subtype = "html"  # Specify the content type as HTML
+    email.send()
 
 def verify_email(request, uidb64, token):
     try:
