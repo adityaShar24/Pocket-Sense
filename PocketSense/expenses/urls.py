@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     ExpenseCreateView,
+    BudgetAnalysisView,
     MonthlyAnalysisView,
     GetExpenseCategorizationView,
     GroupListCreateRetrieveUpdateDestroyView,
@@ -45,4 +46,7 @@ urlpatterns = [
     path('budget/list/', BudgetListCreateRetrieveUpdateDestroyView.as_view(), name='list-budget'),
     path('budget/update/<int:pk>/', BudgetListCreateRetrieveUpdateDestroyView.as_view(), name='update-budget'),
     path('budget/delete/<int:pk>/', BudgetListCreateRetrieveUpdateDestroyView.as_view(), name='delete-budget'),
+    
+    #Budget Analysis
+    path('budget-analysis/', BudgetAnalysisView.as_view(), name='budget-analysis'),
 ]

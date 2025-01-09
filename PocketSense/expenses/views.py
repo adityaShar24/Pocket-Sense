@@ -1,6 +1,7 @@
 from datetime import datetime , timedelta
 from django.shortcuts import render
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum , F, Value
+from django.db.models.functions import Coalesce
 from decimal import Decimal
 
 from rest_framework.permissions import IsAuthenticated , BasePermission
@@ -31,6 +32,7 @@ from .serializers import (
     SettlementSerializer,
     CategorizedExpenseSerializer,
     BudgetSerializer,
+    MonthlyBudgetTrackingSerializer,
 ) 
 
 from utils.response import (
@@ -157,7 +159,21 @@ class ExpenseCreateView(CreateAPIView):
         # Serialize and validate data
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
+        
+        student = request.user
+        category = data.get('category')
+        
+        try:
+            budget = Budget.objects.get(student=student, category=category)
+        except Budget.DoesNotExist:
+            raise ValidationError(f"No budget found for student {student} in category {category}")
 
+        remaining_budget = budget.budget_limit - expense_amount
+        if remaining_budget < 0:
+            raise ValidationError("Expense exceeds the budget limit.")
+
+        budget.budget_limit = remaining_budget
+        budget.save()
         logger.info(f"Serializer Data: {serializer.validated_data}")
 
         self.perform_create(serializer)
@@ -347,3 +363,31 @@ class BudgetListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveUpdat
             return response_200("Budget deleted successfully", None)
         except Exception as e:
             return response_400_bad_request(f"Error while deleting budget: {str(e)}")
+        
+class BudgetAnalysisView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        logger.info(f"Request User: {request.user.email}")
+
+        budgets = (
+            Budget.objects.filter(student=request.user)
+            .annotate(
+                total_expenses=Coalesce(
+                    Sum('category__expense__amount', filter=F('category__expense__student') == request.user),
+                    Value(Decimal("0.00"))
+                ),
+                remaining_budget=F('budget_limit') - Coalesce(
+                    Sum('category__expense__amount', filter=F('category__expense__student') == request.user),
+                    Value(Decimal("0.00"))
+                ),
+            )
+            .values('category__name', 'budget_limit', 'total_expenses', 'remaining_budget')
+        )
+
+        if not budgets:
+            return response_400_bad_request("No budgets found for the user.")
+
+        serializer = MonthlyBudgetTrackingSerializer(budgets, many=True)
+
+        return response_200("Budget Analysis",serializer.data)
