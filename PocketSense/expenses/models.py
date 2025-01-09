@@ -78,3 +78,11 @@ class Settlement(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.payment_status}"
+
+class Budget(models.Model):
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    budget_limit = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    def __str__(self):
+        return f"{self.category.name} - {self.budget_limit}"
