@@ -143,3 +143,8 @@ class SettlementSerializer(ModelSerializer):
         if value not in PaymentMethodEnum.values():
             raise serializers.ValidationError(f"Invalid settlement method. Choices are: {PaymentMethodEnum.help()}")
         return value
+    
+class CategorizedExpenseSerializer(Serializer):
+    category_name = CharField(source = 'category__name')
+    total = DecimalField(max_digits=10, decimal_places=2)
+    

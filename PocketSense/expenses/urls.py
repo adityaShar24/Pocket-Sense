@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     ExpenseCreateView,
     MonthlyAnalysisView,
+    GetExpenseCategorizationView,
     GroupListCreateRetrieveUpdateDestroyView,
     CategoryListCreateRetrieveUpdateDestroyView,
     SettlementListCreateRetrieveUpdateDestroyView,
@@ -33,6 +34,8 @@ urlpatterns = [
     path('settlements/delete/<int:pk>/' , SettlementListCreateRetrieveUpdateDestroyView.as_view(), name='delete-settlement'),
     
     #monthly analysis
-    
     path('monthly-analysis/' , MonthlyAnalysisView.as_view(), name='monthly-analysis'),
+    
+    #Expense Categorization
+    path('expense-categorization/', GetExpenseCategorizationView.as_view(), name='expense-categorization'),
 ]

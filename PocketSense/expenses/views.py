@@ -28,6 +28,7 @@ from .serializers import (
     ExpenseSerializer,
     GroupSerializer,
     SettlementSerializer,
+    CategorizedExpenseSerializer,
 ) 
 
 from utils.response import (
@@ -292,3 +293,14 @@ class MonthlyAnalysisView(APIView):
         }
 
         return response_200("Monthly Analysis",  data)
+    
+class GetExpenseCategorizationView(APIView):
+    permission_classes = (IsAuthenticated,)
+    
+    def get(self, request , *args, **kwargs):
+        logger.info(f"Request User:{request.user.email}")
+        categorized_expenses = Expense.objects.filter(student=request.user).values('category__name').annotate(total=Sum('amount'))
+        
+        serializer = CategorizedExpenseSerializer(categorized_expenses, many=True)
+        
+        return response_200("Expense Categorization", serializer.data )

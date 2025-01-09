@@ -37,7 +37,7 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     split_type = models.CharField(max_length=50)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="expenses")
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="expenses", null=True , blank=True)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="created_expenses")
     paid_by = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="paid_expenses")
     receipt_image = models.ImageField(upload_to='receipts/', null=True, blank=True)
