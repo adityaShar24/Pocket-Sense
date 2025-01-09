@@ -19,6 +19,7 @@ from .models import (
     ExpenseSplit,
     Group,
     Settlement,
+    Budget,
 )
 
 from CoreAuth.models import (
@@ -148,3 +149,15 @@ class CategorizedExpenseSerializer(Serializer):
     category_name = CharField(source = 'category__name')
     total = DecimalField(max_digits=10, decimal_places=2)
     
+    
+class BudgetSerializer(ModelSerializer):
+    class Meta:
+        model = Budget
+        fields = ['id', 'student', 'category', 'budget_limit']
+        read_only_fields = ['student'] 
+    
+class MonthlyBudgetTrackingSerializer(Serializer):
+    category_name = CharField(source = 'category__name')
+    total_expenses = DecimalField(max_digits=10, decimal_places=2)
+    budget_limit = DecimalField(max_digits=10, decimal_places=2)
+    remaining_budget = DecimalField(max_digits=10, decimal_places=2)

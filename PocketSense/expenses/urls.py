@@ -4,6 +4,7 @@ from .views import (
     MonthlyAnalysisView,
     GetExpenseCategorizationView,
     GroupListCreateRetrieveUpdateDestroyView,
+    BudgetListCreateRetrieveUpdateDestroyView,
     CategoryListCreateRetrieveUpdateDestroyView,
     SettlementListCreateRetrieveUpdateDestroyView,
 )
@@ -38,4 +39,10 @@ urlpatterns = [
     
     #Expense Categorization
     path('expense-categorization/', GetExpenseCategorizationView.as_view(), name='expense-categorization'),
+    
+    path('budget/create/', BudgetListCreateRetrieveUpdateDestroyView.as_view(), name='create-budget'),
+    path('budget/retrieve/<int:pk>/', BudgetListCreateRetrieveUpdateDestroyView.as_view(), name='retrieve-budget'),
+    path('budget/list/', BudgetListCreateRetrieveUpdateDestroyView.as_view(), name='list-budget'),
+    path('budget/update/<int:pk>/', BudgetListCreateRetrieveUpdateDestroyView.as_view(), name='update-budget'),
+    path('budget/delete/<int:pk>/', BudgetListCreateRetrieveUpdateDestroyView.as_view(), name='delete-budget'),
 ]

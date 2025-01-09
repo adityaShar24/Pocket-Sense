@@ -20,7 +20,8 @@ from .models import (
     Category,
     Expense,
     Group,
-    Settlement
+    Settlement,
+    Budget,
 )
 
 from .serializers import (
@@ -29,6 +30,7 @@ from .serializers import (
     GroupSerializer,
     SettlementSerializer,
     CategorizedExpenseSerializer,
+    BudgetSerializer,
 ) 
 
 from utils.response import (
@@ -304,3 +306,44 @@ class GetExpenseCategorizationView(APIView):
         serializer = CategorizedExpenseSerializer(categorized_expenses, many=True)
         
         return response_200("Expense Categorization", serializer.data )
+
+class BudgetListCreateRetrieveUpdateDestroyView(ListCreateAPIView, RetrieveUpdateDestroyAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = BudgetSerializer
+    queryset = Budget.objects.all()
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(student=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(student=self.request.user)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            response = super().create(request, *args, **kwargs)
+            return response_200("Budget created successfully", response.data)
+        except Exception as e:
+            return response_400_bad_request(f"Error while creating budget: {str(e)}")
+
+    def get(self, request, *args, **kwargs):
+        if 'pk' in kwargs:
+            return self.retrieve(request, *args, **kwargs)
+        else:
+            return self.list(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        try:
+            response = super().update(request, *args, **kwargs)
+            return response_200("Budget updated successfully", response.data)
+        except Exception as e:
+            return response_400_bad_request(f"Error while updating budget: {str(e)}")
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        try:
+            response = super().destroy(request, *args, **kwargs)
+            return response_200("Budget deleted successfully", None)
+        except Exception as e:
+            return response_400_bad_request(f"Error while deleting budget: {str(e)}")
