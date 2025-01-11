@@ -1,7 +1,7 @@
 from datetime import datetime , timedelta
 from django.shortcuts import render
 from django.db.models import Count, Sum , F, Value
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce , TruncMonth
 from decimal import Decimal
 
 from rest_framework.permissions import IsAuthenticated , BasePermission
@@ -41,6 +41,7 @@ from utils.response import (
 )
 from .utils import (
     handle_expense_split,
+    calculate_settlement,
 )
 
 from .enums import (
@@ -148,7 +149,7 @@ class ExpenseCreateView(CreateAPIView):
 
             num_participants = len(splits_data)
             if num_participants == 0:
-                raise ValidationError("No participants provided for the equal split.")
+                raise ValidationError("Number of participants cannot be zero.")
 
         logger.info(f"Participants : {splits_data}")
 
@@ -166,15 +167,16 @@ class ExpenseCreateView(CreateAPIView):
         try:
             budget = Budget.objects.get(student=student, category=category)
         except Budget.DoesNotExist:
-            raise ValidationError(f"No budget found for student {student} in category {category}")
+            budget = None
 
-        remaining_budget = budget.budget_limit - expense_amount
-        if remaining_budget < 0:
-            raise ValidationError("Expense exceeds the budget limit.")
+        if budget:
+            remaining_budget = budget.budget_limit - expense_amount
+            if remaining_budget < 0:
+                raise ValidationError("Expense exceeds the budget limit.")
 
-        budget.budget_limit = remaining_budget
-        budget.save()
-        logger.info(f"Serializer Data: {serializer.validated_data}")
+            budget.budget_limit = remaining_budget
+            budget.save()
+            logger.info(f"Serializer Data: {serializer.validated_data}")
 
         self.perform_create(serializer)
 
@@ -391,3 +393,84 @@ class BudgetAnalysisView(APIView):
         serializer = MonthlyBudgetTrackingSerializer(budgets, many=True)
 
         return response_200("Budget Analysis",serializer.data)
+
+class SettlementSuggestionView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        group_id = request.query_params.get('group_id') 
+        user_email = request.query_params.get('user_email')
+        if group_id:
+            try:
+                group = Group.objects.get(pk=group_id, created_by=request.user)
+            except Group.DoesNotExist:
+                return response_400_bad_request(f"No group found with ID {group_id}")
+
+            expenses = group.expenses.all()
+            members = group.members.values_list('email', flat=True)
+            settlements = calculate_settlement(expenses, members)
+            return response_200("Group Settlement Suggestions", settlements)
+        
+        elif user_email:
+            try:
+                other_user = User.objects.get(email=user_email)
+            except User.DoesNotExist:
+                return response_400_bad_request(f"No user found with email {user_email}")
+
+            expenses = Expense.objects.filter(
+                group__members__in=[request.user, other_user]
+            ).distinct()
+
+            members = [request.user.email, other_user.email]
+            settlements = calculate_settlement(expenses, members)
+            return response_200("Individual Settlement Suggestions", settlements)
+
+        else:
+            return response_400_bad_request("Invalid request. Please provide 'group_id' or 'user_email'.")
+
+
+class SpendingPatternsView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        time_period = request.query_params.get('time_period', 'monthly')  # Default: Monthly
+        start_date = request.query_params.get('start_date')  # Optional
+        end_date = request.query_params.get('end_date')  # Optional
+
+        if not start_date or not end_date:
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=180)
+        else:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date = datetime.strptime(end_date, "%Y-%m-%d")
+
+        expenses = Expense.objects.filter(
+            student=user,
+            created_at__range=[start_date, end_date]
+        )
+
+        total_spent = expenses.aggregate(total=Sum('amount'))['total'] or 0
+
+        category_spending = expenses.values('category__name').annotate(
+            total=Sum('amount')
+        ).order_by('-total')
+
+        if time_period == 'monthly':
+            trends = expenses.annotate(
+                month=TruncMonth('created_at')
+            ).values('month').annotate(total=Sum('amount')).order_by('month')
+        elif time_period == 'weekly':
+            trends = expenses.annotate(
+                week=TruncWeek('created_at')
+            ).values('week').annotate(total=Sum('amount')).order_by('week')
+        else:
+            return Response({"error": "Invalid time_period. Use 'monthly' or 'weekly'."}, status=400)
+
+        response_data = {
+            "total_spent": total_spent,
+            "category_spending": category_spending,
+            "spending_trends": list(trends),
+        }
+
+        return response_200("Spending Patterns Analysis", response_data)

@@ -95,3 +95,43 @@ def handle_expense_split(expense_amount, split_type, splits_data):
     return splits_data
 
 
+def calculate_settlement(expenses, group_members):
+    balances = {member: 0 for member in group_members}
+
+    for expense in expenses:
+        splits = expense.splits  
+        paid_by = expense.paid_by.email
+        amount = expense.amount
+
+        balances[paid_by] += amount
+
+        for split in splits:
+            balances[split['email']] -= split['amount']
+
+    settlements = []
+    debtors = [(k, v) for k, v in balances.items() if v < 0]
+    creditors = [(k, v) for k, v in balances.items() if v > 0]
+
+    debtors.sort(key=lambda x: x[1])
+    creditors.sort(key=lambda x: x[1], reverse=True)
+
+    while debtors and creditors:
+        debtor, debt_amount = debtors.pop(0)
+        creditor, credit_amount = creditors.pop(0)
+
+        settlement_amount = min(-debt_amount, credit_amount)
+        settlements.append({
+            "from": debtor,
+            "to": creditor,
+            "amount": settlement_amount
+        })
+
+        debt_amount += settlement_amount
+        credit_amount -= settlement_amount
+
+        if debt_amount < 0:
+            debtors.insert(0, (debtor, debt_amount))
+        if credit_amount > 0:
+            creditors.insert(0, (creditor, credit_amount))
+
+    return settlements

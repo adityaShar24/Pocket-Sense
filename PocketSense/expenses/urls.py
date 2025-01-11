@@ -3,6 +3,8 @@ from .views import (
     ExpenseCreateView,
     BudgetAnalysisView,
     MonthlyAnalysisView,
+    SpendingPatternsView,
+    SettlementSuggestionView,
     GetExpenseCategorizationView,
     GroupListCreateRetrieveUpdateDestroyView,
     BudgetListCreateRetrieveUpdateDestroyView,
@@ -49,4 +51,8 @@ urlpatterns = [
     
     #Budget Analysis
     path('budget-analysis/', BudgetAnalysisView.as_view(), name='budget-analysis'),
+    
+    path('settlement-suggestion/', SettlementSuggestionView.as_view(), name='budget-analysis'),
+    
+    path('spending-analysis/', SpendingPatternsView.as_view(), name='spending-pattern-analysis'),
 ]
