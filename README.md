@@ -1,5 +1,3 @@
-# Pocket-Sense
-
 # PocketSense API Documentation
 
 ## Core Implementation
